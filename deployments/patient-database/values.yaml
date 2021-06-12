@@ -1,0 +1,3 @@
+postgresql:
+  initdbScriptsConfigMap: patient-database-configmap
+  existingSecret: patient-database-secret

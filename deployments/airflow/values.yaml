@@ -1,0 +1,53 @@
+airflow:
+  # executor: "KubernetesExecutor"
+  flower:
+    enabled: false
+  ingress:
+    enabled: true
+    web:
+      path: "/airflow"
+  airflow:
+    users:
+      - username: admin-user
+        password: admin-user
+        role: Admin
+        email: admin-user@wavy-health.com
+        firstName: Admin
+        lastName: User
+    config:
+      AIRFLOW__WEBSERVER__BASE_URL: "http://localhost:9080/airflow"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "False"
+      AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "60"
+      GUNICORN_CMD_ARGS: "--log-level WARNING"
+    extraPipPackages:
+      - "minio==7.0.3"
+  workers:
+    autoscaling:
+      enabled: true
+      maxReplicas: 16
+      metrics:
+        - type: Resource
+          resource:
+            name: memory
+            target:
+              type: Utilization
+              averageUtilization: 80
+    extraVolumeMounts:
+      - name: minio-secret
+        mountPath: /opt/airflow/secrets/minio-secret
+    extraVolumes:
+      - name: minio-secret
+        secret:
+          secretName: minio-secret
+  dags:
+    gitSync:
+      enabled: true
+      repo: "git@github.com:Choem/airflow-dags.git"
+      branch: "master"
+      revision: "HEAD"
+      syncWait: 60
+      sshSecret: airflow-ssh-git-secret
+      sshSecretKey: "id_ed25519"
+      resources:
+        requests:
+          memory: "64Mi"

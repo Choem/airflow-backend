@@ -1,0 +1,19 @@
+minio:
+  existingSecret: minio-secret
+  buckets:
+    - name: user-1
+      policy: none
+      purge: false
+    - name: user-2
+      policy: none
+      purge: false
+    - name: user-3
+      policy: none
+      purge: false
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "500m"
+    limits:
+      memory: "128Mi"
+      cpu: "500m"
