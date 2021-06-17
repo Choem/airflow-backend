@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,15 +21,13 @@ func main() {
 	secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
 	useSSLString := os.Getenv("MINIO_USE_SSL")
 
-	fmt.Println(port, endpointPrefix, accessKeyID, secretAccessKey, useSSLString)
-
 	useSSL, useSSLConvErr := strconv.ParseBool(useSSLString)
 	if useSSLConvErr != nil {
 		useSSL = false
 	}
 
 	// Initialize minio client object
-	minioClient, err := minio.New("minio", &minio.Options{
+	minioClient, err := minio.New("minio:9000", &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
 	})

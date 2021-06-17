@@ -5,13 +5,77 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/choem/airflow-backend/services/file-service/cmd/graph/generated"
+	"github.com/minio/minio-go/v7"
 )
 
+const (
+	layoutISO = "2006-01-02T15:04:05"
+)
+
+func contains(slice []string, item string) bool {
+	set := make(map[string]struct{}, len(slice))
+	for _, s := range slice {
+		set[s] = struct{}{}
+	}
+
+	_, ok := set[item]
+	return ok
+}
+
+func isInRange(startDate time.Time, endDate time.Time, dateToMeasure time.Time) bool {
+	return startDate.Before(dateToMeasure) && endDate.After(dateToMeasure)
+}
+
 func (r *queryResolver) GetActivePatients(ctx context.Context, startDate string, endDate string) ([]int, error) {
-	panic(fmt.Errorf("not implemented"))
+	parsedStartDate, err := time.Parse(layoutISO, startDate)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedEndDate, err := time.Parse(layoutISO, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	if parsedStartDate.After(parsedEndDate) {
+		return nil, errors.New("start date cannot be after the end date")
+	}
+
+	buckets, err := r.MinioClient.ListBuckets(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bucketsWithNewLogs := []string{}
+
+	for _, bucket := range buckets {
+		for object := range r.MinioClient.ListObjects(ctx, bucket.Name, minio.ListObjectsOptions{Recursive: true}) {
+			if isInRange(parsedStartDate, parsedEndDate, object.LastModified) && !contains(bucketsWithNewLogs, bucket.Name) {
+				bucketsWithNewLogs = append(bucketsWithNewLogs, bucket.Name)
+			}
+		}
+	}
+
+	patientIds := []int{}
+
+	for _, bucketName := range bucketsWithNewLogs {
+		split := strings.Split(bucketName, "-")
+
+		i, err := strconv.Atoi(split[1])
+		if err != nil {
+			return nil, err
+		}
+
+		patientIds = append(patientIds, i)
+	}
+
+	return patientIds, nil
 }
 
 // Query returns generated.QueryResolver implementation.
