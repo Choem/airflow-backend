@@ -1,0 +1,16 @@
+local('helm upgrade --install file-service ./deployments/file-service -f ./deployments/file-service/values.yaml')
+
+# Infer yaml files
+k8s_yaml([
+  helm('deployments/file-service', name='file-service', values=['deployments/file-service/values.yaml']),
+])
+
+# File service deployment
+docker_build(
+  'k3d-airflow-backend-registry:5000/file-service', 
+  './services/file-service/',
+  dockerfile='./services/file-service/Dockerfile',
+  live_update=[
+    sync('./services/file-service/cmd', '/usr/src/app/cmd'),
+  ],
+)

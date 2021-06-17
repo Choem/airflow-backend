@@ -1,0 +1,18 @@
+# Refer to https://gqlgen.com/config/
+# for detailed .gqlgen.yml documentation.
+
+schema:
+  - "cmd/schema/**/*.graphql"
+
+exec:
+  filename: cmd/graph/generated/generated.go
+  package: generated
+
+# model:
+# filename: cmd/graph/models/models_gen.go
+# package: models
+
+resolver:
+  layout: follow-schema
+  dir: cmd/graph/resolvers
+  package: resolvers

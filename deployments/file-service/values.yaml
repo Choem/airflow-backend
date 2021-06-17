@@ -1,0 +1,3 @@
+image: k3d-airflow-backend-registry:5000/file-service
+port: 4000
+endpointPrefix: /file/graphql

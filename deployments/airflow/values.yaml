@@ -1,5 +1,5 @@
 airflow:
-  # executor: "KubernetesExecutor"
+  executor: "KubernetesExecutor"
   flower:
     enabled: false
   ingress:
@@ -11,7 +11,7 @@ airflow:
       - username: admin-user
         password: admin-user
         role: Admin
-        email: admin-user@wavy-health.com
+        email: admin-user@test.com
         firstName: Admin
         lastName: User
     config:
@@ -20,7 +20,7 @@ airflow:
       AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "60"
       GUNICORN_CMD_ARGS: "--log-level WARNING"
     extraPipPackages:
-      - "minio==7.0.3"
+      - "gql==2.0.0"
   workers:
     autoscaling:
       enabled: true
@@ -32,13 +32,6 @@ airflow:
             target:
               type: Utilization
               averageUtilization: 80
-    extraVolumeMounts:
-      - name: minio-secret
-        mountPath: /opt/airflow/secrets/minio-secret
-    extraVolumes:
-      - name: minio-secret
-        secret:
-          secretName: minio-secret
   dags:
     gitSync:
       enabled: true
