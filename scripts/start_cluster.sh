@@ -24,9 +24,13 @@ if [ $CLUSTER_STATUS -eq 0 ]; then
 
     source ${ROOT_PATH}/scripts/create_airflow_secret.sh
 
-    helm upgrade --install airflow       ./deployments/airflow       -f ./deployments/airflow/values.yaml
-    helm upgrade --install minio         ./deployments/minio         -f ./deployments/minio/values.yaml
-    helm upgrade --install user-database ./deployments/user-database -f ./deployments/user-database/values.yaml
+    # Downloaded charts
+    helm upgrade --install airflow          ./deployments/airflow           -f ./deployments/airflow/values.yaml
+    helm upgrade --install minio            ./deployments/minio             -f ./deployments/minio/values.yaml
+    helm upgrade --install patient-database ./deployments/patient-database  -f ./deployments/patient-database/values.yaml
+
+    # Self managed charts
+    tilt ci -f ./Tiltfile.ci
 elif [ $CLUSTER_STATUS -eq 1 ]; then
     k3d cluster start $CLUSTER_NAME
 elif [ $CLUSTER_STATUS -eq 2 ]; then
