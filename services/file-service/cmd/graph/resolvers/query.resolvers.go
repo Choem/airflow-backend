@@ -35,8 +35,10 @@ func inRange(startDate time.Time, endDate time.Time, dateToMeasure time.Time) bo
 func (r *queryResolver) GetPatientLogs(ctx context.Context, patientID int) ([]string, error) {
 	logUrls := []string{}
 
-	for object := range r.MinioClient.ListObjects(ctx, fmt.Sprintf("user-%d", patientID), minio.ListObjectsOptions{Prefix: "/logs", Recursive: true}) {
-		logUrls = append(logUrls, object.Key)
+	bucketName := fmt.Sprintf("user-%d", patientID)
+
+	for object := range r.MinioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Prefix: "/logs", Recursive: true}) {
+		logUrls = append(logUrls, bucketName+object.Key)
 	}
 
 	return logUrls, nil
