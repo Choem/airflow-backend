@@ -6,12 +6,13 @@ package resolvers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/choem/airflow-backend/services/file-service/cmd/graph/generated"
-	"github.com/minio/minio-go/v7"
+	minio "github.com/minio/minio-go/v7"
 )
 
 const (
@@ -27,9 +28,18 @@ func contains(slice []string, item string) bool {
 	_, ok := set[item]
 	return ok
 }
-
-func isInRange(startDate time.Time, endDate time.Time, dateToMeasure time.Time) bool {
+func inRange(startDate time.Time, endDate time.Time, dateToMeasure time.Time) bool {
 	return startDate.Before(dateToMeasure) && endDate.After(dateToMeasure)
+}
+
+func (r *queryResolver) GetPatientLogs(ctx context.Context, patientID int) ([]string, error) {
+	logUrls := []string{}
+
+	for object := range r.MinioClient.ListObjects(ctx, fmt.Sprintf("user-%d", patientID), minio.ListObjectsOptions{Prefix: "/logs", Recursive: true}) {
+		logUrls = append(logUrls, object.Key)
+	}
+
+	return logUrls, nil
 }
 
 func (r *queryResolver) GetActivePatients(ctx context.Context, startDate string, endDate string) ([]int, error) {
@@ -55,8 +65,9 @@ func (r *queryResolver) GetActivePatients(ctx context.Context, startDate string,
 	bucketsWithNewLogs := []string{}
 
 	for _, bucket := range buckets {
-		for object := range r.MinioClient.ListObjects(ctx, bucket.Name, minio.ListObjectsOptions{Recursive: true}) {
-			if isInRange(parsedStartDate, parsedEndDate, object.LastModified) && !contains(bucketsWithNewLogs, bucket.Name) {
+		for object := range r.MinioClient.ListObjects(ctx, bucket.Name, minio.ListObjectsOptions{Prefix: "/logs", Recursive: true}) {
+			relativeTime := object.LastModified.Add(time.Hour * 2)
+			if inRange(parsedStartDate, parsedEndDate, relativeTime) && !contains(bucketsWithNewLogs, bucket.Name) {
 				bucketsWithNewLogs = append(bucketsWithNewLogs, bucket.Name)
 			}
 		}
