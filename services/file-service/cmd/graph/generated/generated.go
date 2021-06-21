@@ -44,22 +44,22 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreatePatientLog func(childComplexity int, patientID int, file graphql.Upload) int
-		SavePatientModel func(childComplexity int, patientID int, file graphql.Upload) int
 	}
 
 	Query struct {
-		GetActivePatients func(childComplexity int, startDate string, endDate string) int
-		GetPatientLogs    func(childComplexity int, patientID int) int
+		GetActivePatients          func(childComplexity int, startDate string, endDate string) int
+		GetPatientLogs             func(childComplexity int, patientID int) int
+		GetPatientModelDownloadURL func(childComplexity int, patientID int) int
 	}
 }
 
 type MutationResolver interface {
 	CreatePatientLog(ctx context.Context, patientID int, file graphql.Upload) (bool, error)
-	SavePatientModel(ctx context.Context, patientID int, file graphql.Upload) (bool, error)
 }
 type QueryResolver interface {
 	GetPatientLogs(ctx context.Context, patientID int) ([]string, error)
 	GetActivePatients(ctx context.Context, startDate string, endDate string) ([]int, error)
+	GetPatientModelDownloadURL(ctx context.Context, patientID int) (*string, error)
 }
 
 type executableSchema struct {
@@ -89,18 +89,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreatePatientLog(childComplexity, args["patientId"].(int), args["file"].(graphql.Upload)), true
 
-	case "Mutation.savePatientModel":
-		if e.complexity.Mutation.SavePatientModel == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_savePatientModel_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.SavePatientModel(childComplexity, args["patientId"].(int), args["file"].(graphql.Upload)), true
-
 	case "Query.getActivePatients":
 		if e.complexity.Query.GetActivePatients == nil {
 			break
@@ -124,6 +112,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetPatientLogs(childComplexity, args["patientId"].(int)), true
+
+	case "Query.getPatientModelDownloadUrl":
+		if e.complexity.Query.GetPatientModelDownloadURL == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getPatientModelDownloadUrl_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetPatientModelDownloadURL(childComplexity, args["patientId"].(int)), true
 
 	}
 	return 0, false
@@ -191,12 +191,12 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "cmd/schema/mutation.graphql", Input: `type Mutation {
   createPatientLog(patientId: Int!, file: Upload!): Boolean!
-  savePatientModel(patientId: Int!, file: Upload!): Boolean!
 }
 `, BuiltIn: false},
 	{Name: "cmd/schema/query.graphql", Input: `type Query {
   getPatientLogs(patientId: Int!): [String!]!
   getActivePatients(startDate: String!, endDate: String!): [Int!]!
+  getPatientModelDownloadUrl(patientId: Int!): String
 }
 `, BuiltIn: false},
 	{Name: "cmd/schema/scalars.graphql", Input: `# gqlgen supports some custom scalars out of the box
@@ -232,30 +232,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // region    ***************************** args.gotpl *****************************
 
 func (ec *executionContext) field_Mutation_createPatientLog_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["patientId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("patientId"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["patientId"] = arg0
-	var arg1 graphql.Upload
-	if tmp, ok := rawArgs["file"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
-		arg1, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["file"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_savePatientModel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
@@ -319,6 +295,21 @@ func (ec *executionContext) field_Query_getActivePatients_args(ctx context.Conte
 }
 
 func (ec *executionContext) field_Query_getPatientLogs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["patientId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("patientId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["patientId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getPatientModelDownloadUrl_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
@@ -397,48 +388,6 @@ func (ec *executionContext) _Mutation_createPatientLog(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().CreatePatientLog(rctx, args["patientId"].(int), args["file"].(graphql.Upload))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_savePatientModel(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_savePatientModel_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SavePatientModel(rctx, args["patientId"].(int), args["file"].(graphql.Upload))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -537,6 +486,45 @@ func (ec *executionContext) _Query_getActivePatients(ctx context.Context, field 
 	res := resTmp.([]int)
 	fc.Result = res
 	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getPatientModelDownloadUrl(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getPatientModelDownloadUrl_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetPatientModelDownloadURL(rctx, args["patientId"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1725,11 +1713,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "savePatientModel":
-			out.Values[i] = ec._Mutation_savePatientModel(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -1782,6 +1765,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "getPatientModelDownloadUrl":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getPatientModelDownloadUrl(ctx, field)
 				return res
 			})
 		case "__type":

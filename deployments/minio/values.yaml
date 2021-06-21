@@ -4,11 +4,20 @@ minio:
     - name: user-1
       policy: none
       purge: false
+    - name: user-1/models
+      policy: download
+      purge: false
     - name: user-2
       policy: none
       purge: false
+    - name: user-2/models
+      policy: download
+      purge: false
     - name: user-3
       policy: none
+      purge: false
+    - name: user-3/models
+      policy: download
       purge: false
   resources:
     requests:

@@ -1,4 +1,3 @@
 type Mutation {
   createPatientLog(patientId: Int!, file: Upload!): Boolean!
-  savePatientModel(patientId: Int!, file: Upload!): Boolean!
 }

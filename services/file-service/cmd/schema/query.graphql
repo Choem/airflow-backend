@@ -1,4 +1,5 @@
 type Query {
   getPatientLogs(patientId: Int!): [String!]!
   getActivePatients(startDate: String!, endDate: String!): [Int!]!
+  getPatientModelDownloadUrl(patientId: Int!): String
 }

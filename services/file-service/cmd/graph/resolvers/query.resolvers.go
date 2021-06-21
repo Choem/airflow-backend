@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -37,8 +39,10 @@ func (r *queryResolver) GetPatientLogs(ctx context.Context, patientID int) ([]st
 
 	bucketName := fmt.Sprintf("user-%d", patientID)
 
-	for object := range r.MinioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Prefix: "/logs", Recursive: true}) {
-		logUrls = append(logUrls, bucketName+object.Key)
+	prefix := "/logs"
+
+	for object := range r.MinioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
+		logUrls = append(logUrls, strings.Split(object.Key, prefix+"/")[1])
 	}
 
 	return logUrls, nil
@@ -68,8 +72,7 @@ func (r *queryResolver) GetActivePatients(ctx context.Context, startDate string,
 
 	for _, bucket := range buckets {
 		for object := range r.MinioClient.ListObjects(ctx, bucket.Name, minio.ListObjectsOptions{Prefix: "/logs", Recursive: true}) {
-			relativeTime := object.LastModified.Add(time.Hour * 2)
-			if inRange(parsedStartDate, parsedEndDate, relativeTime) && !contains(bucketsWithNewLogs, bucket.Name) {
+			if inRange(parsedStartDate, parsedEndDate, object.LastModified) && !contains(bucketsWithNewLogs, bucket.Name) {
 				bucketsWithNewLogs = append(bucketsWithNewLogs, bucket.Name)
 			}
 		}
@@ -89,6 +92,40 @@ func (r *queryResolver) GetActivePatients(ctx context.Context, startDate string,
 	}
 
 	return patientIds, nil
+}
+
+func (r *queryResolver) GetPatientModelDownloadURL(ctx context.Context, patientID int) (*string, error) {
+	var bucketName = fmt.Sprintf("user-%d", patientID)
+
+	var latestModel *minio.ObjectInfo = nil
+	for object := range r.MinioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Prefix: "models", Recursive: true}) {
+		if latestModel == nil || object.LastModified.After(latestModel.LastModified) {
+			latestModel = &object
+		}
+	}
+
+	if latestModel != nil {
+		url, err := r.MinioClient.PresignedGetObject(ctx, bucketName, latestModel.Key, time.Minute*1, url.Values{})
+		if err != nil {
+			return nil, err
+		}
+
+		var downloadURL string = url.String()
+
+		// Parse admin credential query param
+		accessKeyID := os.Getenv("MINIO_ACCESS_KEY_ID")
+		var downloadURLQueryParams = strings.Split(downloadURL, fmt.Sprintf("&X-Amz-Credential=%s", accessKeyID))
+		downloadURL = downloadURLQueryParams[0] + downloadURLQueryParams[1]
+
+		if strings.Contains(downloadURL, "minio:9000") {
+			var downloadURLParts = strings.Split(downloadURL, "minio:9000")
+			downloadURL = downloadURLParts[0] + "localhost:9000" + downloadURLParts[1]
+		}
+
+		return &downloadURL, nil
+	}
+
+	return nil, nil
 }
 
 // Query returns generated.QueryResolver implementation.

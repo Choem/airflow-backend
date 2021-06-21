@@ -32,6 +32,13 @@ airflow:
             target:
               type: Utilization
               averageUtilization: 80
+    extraVolumeMounts:
+      - name: minio-secret
+        mountPath: /opt/airflow/secrets/minio-secret
+    extraVolumes:
+      - name: minio-secret
+        secret:
+          secretName: minio-secret
   dags:
     gitSync:
       enabled: true

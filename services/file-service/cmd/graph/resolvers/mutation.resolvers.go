@@ -13,18 +13,9 @@ import (
 )
 
 func (r *mutationResolver) CreatePatientLog(ctx context.Context, patientID int, file graphql.Upload) (bool, error) {
-	_, err := r.MinioClient.FPutObject(ctx, fmt.Sprintf("user-%d/logs", patientID), file.Filename, file.Filename, minio.PutObjectOptions{
+	_, err := r.MinioClient.FPutObject(ctx, fmt.Sprintf("user-%d", patientID), "logs/"+file.Filename, file.Filename, minio.PutObjectOptions{
 		ContentType: "application/csv",
 	})
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (r *mutationResolver) SavePatientModel(ctx context.Context, patientID int, file graphql.Upload) (bool, error) {
-	_, err := r.MinioClient.FPutObject(ctx, fmt.Sprintf("user-%d/models", patientID), file.Filename, file.Filename, minio.PutObjectOptions{})
 	if err != nil {
 		return false, err
 	}
